@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurum — On-Model Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--cream:#F9F5EF;--warm:#FDFAF6;--gold:#B8923A;--gold-l:#D4AA5A;--gold-p:#F0E6CC;--ink:#1C1A18;--stone:#6B6460;--dust:#C8C0B8;--border:rgba(184,146,58,0.2)}
+  html,body{height:100%;background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font-weight:300}
+  .app{min-height:100vh;display:grid;grid-template-rows:auto 1fr}
+  header{padding:1.1rem 2.4rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--warm)}
+  .logo{font-family:'Cormorant Garamond',serif;font-size:1.7rem;font-weight:300;letter-spacing:.3em;text-transform:uppercase}
+  .logo span{color:var(--gold)}
+  .tagline{font-size:.63rem;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
+  .badge{background:rgba(46,107,46,.1);border:1px solid rgba(46,107,46,.25);color:#3A6B3A;padding:.26rem .8rem;font-size:.57rem;letter-spacing:.14em;text-transform:uppercase;border-radius:50px}
+  main{display:grid;grid-template-columns:355px 1fr;min-height:0}
+  .left{background:var(--warm);border-right:1px solid var(--border);padding:1.7rem;display:flex;flex-direction:column;gap:1.35rem;overflow-y:auto}
+  .stitle{font-family:'Cormorant Garamond',serif;font-size:.93rem;font-weight:400;letter-spacing:.1em;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+  .stitle::after{content:'';flex:1;height:1px;background:var(--border)}
+  .upzone{border:1.5px dashed var(--dust);border-radius:2px;padding:1.4rem;text-align:center;cursor:pointer;transition:all .3s;position:relative}
+  .upzone:hover,.upzone.over{border-color:var(--gold);background:rgba(184,146,58,.03)}
+  .upzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .up-icon{width:32px;height:32px;margin:0 auto .55rem;opacity:.26}
+  .up-txt{font-size:.71rem;letter-spacing:.1em;text-transform:uppercase;color:var(--stone)}
+  .up-sub{font-size:.61rem;color:var(--dust);margin-top:.22rem}
+  .thumbs{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.65rem}
+  .thumb{width:56px;height:56px;border-radius:2px;overflow:hidden;position:relative;border:1px solid var(--border);cursor:pointer;transition:transform .2s;flex-shrink:0}
+  .thumb:hover{transform:scale(1.06)}
+  .thumb.active{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold-p)}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb .rm{position:absolute;top:2px;right:2px;width:14px;height:14px;background:rgba(28,26,24,.75);color:#fff;border:none;border-radius:50%;font-size:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+  .thumb:hover .rm{opacity:1}
+  .ogrid{display:grid;grid-template-columns:1fr 1fr;gap:.42rem}
+  .obtn{padding:.48rem;border:1px solid var(--border);background:transparent;cursor:pointer;font-family:'Jost',sans-serif;font-size:.64rem;font-weight:300;letter-spacing:.1em;text-transform:uppercase;color:var(--stone);transition:all .2s;border-radius:1px}
+  .obtn:hover{border-color:var(--gold-l);color:var(--ink)}
+  .obtn.sel{background:var(--ink);border-color:var(--ink);color:var(--gold-p)}
+  .pills{display:flex;flex-wrap:wrap;gap:.36rem}
+  .pill{padding:.32rem .75rem;border:1px solid var(--border);background:transparent;cursor:pointer;font-family:'Jost',sans-serif;font-size:.58rem;letter-spacing:.11em;text-transform:uppercase;color:var(--stone);border-radius:50px;transition:all .2s}
+  .pill:hover{border-color:var(--gold);color:var(--gold)}
+  .pill.sel{background:var(--gold);border-color:var(--gold);color:#fff}
+  .crow{display:flex;align-items:center;gap:.9rem}
+  .cnum{font-family:'Cormorant Garamond',serif;font-size:1.85rem;font-weight:300;color:var(--gold);min-width:2rem;text-align:center}
+  input[type=range]{flex:1;-webkit-appearance:none;height:2px;background:var(--border);border-radius:1px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px var(--gold)}
+  .gbtn{width:100%;padding:.9rem;background:var(--ink);color:var(--gold-p);border:none;font-family:'Cormorant Garamond',serif;font-size:.93rem;font-weight:400;letter-spacing:.3em;text-transform:uppercase;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;margin-top:auto}
+  .gbtn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(212,170,90,.14),transparent);transition:left .5s}
+  .gbtn:hover::before{left:100%}
+  .gbtn:hover:not(:disabled){background:#2a2724;letter-spacing:.38em}
+  .gbtn:disabled{opacity:.38;cursor:not-allowed}
+  .right{padding:2.1rem;overflow-y:auto;display:flex;flex-direction:column}
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1rem}
+  .empty-orn{width:62px;height:62px;opacity:.1}
+  .empty-t{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:300;letter-spacing:.05em}
+  .empty-s{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--stone);max-width:230px;line-height:1.8}
+  .rhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.95rem}
+  .rtitle{font-family:'Cormorant Garamond',serif;font-size:1.22rem;font-weight:300;letter-spacing:.08em}
+  .rsub{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--stone)}
+  .pwrap{margin-bottom:1.1rem;display:none}
+  .pwrap.show{display:block}
+  .ptrack{height:2px;background:var(--gold-p);border-radius:2px;overflow:hidden}
+  .pfill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-l));border-radius:2px;transition:width .55s ease;width:0%}
+  .plabel{font-size:.61rem;color:var(--stone);margin-top:.42rem;letter-spacing:.06em}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:1.25rem}
+  .card{background:var(--warm);border:1px solid var(--border);border-radius:2px;overflow:hidden;transition:transform .3s,box-shadow .3s;animation:fadeUp .38s ease both}
+  .card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(28,26,24,.09)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .cimg{aspect-ratio:3/4;position:relative;background:var(--gold-p);overflow:hidden}
+  .cimg img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .55s;position:absolute;inset:0}
+  .cimg img.show{opacity:1}
+  .cload{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;background:var(--gold-p);transition:opacity .4s}
+  .cload.gone{opacity:0;pointer-events:none}
+  .spin{width:26px;height:26px;border:2px solid rgba(184,146,58,.15);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ltxt{font-family:'Cormorant Garamond',serif;font-size:.77rem;font-style:italic;color:var(--stone);text-align:center;padding:0 1rem;line-height:1.5}
+  .lsub{font-size:.58rem;color:var(--dust);letter-spacing:.07em}
+  /* countdown overlay */
+  .cwait{position:absolute;inset:0;background:var(--gold-p);flex-direction:column;align-items:center;justify-content:center;gap:.55rem;display:none}
+  .cwait.show{display:flex}
+  .cring{position:relative;width:44px;height:44px}
+  .cring svg{transform:rotate(-90deg)}
+  .crtrack{fill:none;stroke:rgba(184,146,58,.15);stroke-width:3}
+  .crfill{fill:none;stroke:var(--gold);stroke-width:3;stroke-linecap:round;stroke-dasharray:119.4;stroke-dashoffset:119.4;transition:stroke-dashoffset 1s linear}
+  .crnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:.95rem;color:var(--gold)}
+  .cwlabel{font-size:.58rem;color:var(--stone);letter-spacing:.1em;text-transform:uppercase}
+  .chov{position:absolute;inset:0;background:rgba(28,26,24,0);display:flex;align-items:center;justify-content:center;gap:.55rem;transition:background .3s}
+  .card:hover .chov{background:rgba(28,26,24,.42)}
+  .hbtn{width:36px;height:36px;background:rgba(249,245,239,.93);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);opacity:0;transform:scale(.8);transition:all .2s}
+  .card:hover .hbtn{opacity:1;transform:scale(1)}
+  .hbtn:hover{background:#fff;transform:scale(1.1)!important}
+  .cfooter{padding:.65rem .95rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .clabel{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+  .cstatus{font-size:.56rem;letter-spacing:.07em}
+  .clink{font-size:.58rem;color:var(--gold);text-decoration:none;letter-spacing:.07em;padding:.4rem .95rem;display:none;border-top:1px solid var(--border)}
+  .clink.show{display:block}
+  .clink:hover{text-decoration:underline}
+  .lightbox{position:fixed;inset:0;background:rgba(28,26,24,.93);z-index:2000;display:none;align-items:center;justify-content:center;padding:2rem;cursor:zoom-out}
+  .lightbox.open{display:flex;animation:lbIn .18s ease}
+  @keyframes lbIn{from{opacity:0}to{opacity:1}}
+  .lightbox img{max-height:90vh;max-width:90vw;object-fit:contain;cursor:default}
+  .lbx{position:absolute;top:1.4rem;right:1.4rem;background:rgba(249,245,239,.14);border:none;color:var(--cream,#F9F5EF);width:32px;height:32px;border-radius:50%;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .lbx:hover{background:rgba(249,245,239,.25)}
+  .toast{position:fixed;bottom:1.8rem;right:1.8rem;background:var(--ink);color:var(--gold-p);padding:.65rem 1.2rem;font-size:.68rem;letter-spacing:.1em;border-radius:1px;transform:translateY(60px);opacity:0;transition:all .35s cubic-bezier(.175,.885,.32,1.275);z-index:1000}
+  .toast.show{transform:translateY(0);opacity:1}
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-thumb{background:var(--dust);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">A<span>u</span>rum</div>
+    <div class="tagline">On-Model Image Generator</div>
+    <div class="badge">✦ 100% Free · No Login</div>
+  </header>
+  <main>
+    <div class="left">
+      <div>
+        <div class="stitle">Jewellery Photo</div>
+        <div class="upzone" id="upzone">
+          <input type="file" id="fileIn" accept="image/*" multiple>
+          <svg class="up-icon" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.2">
+            <rect x="4" y="4" width="36" height="36" rx="2"/><circle cx="16" cy="16" r="4"/><path d="M4 30l10-10 6 6 8-8 12 12"/>
+          </svg>
+          <div class="up-txt">Drop jewellery image here</div>
+          <div class="up-sub">PNG / JPG — transparent bg works best</div>
+        </div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+      <div>
+        <div class="stitle">Jewellery Type</div>
+        <div class="ogrid" id="jtype">
+          <button class="obtn sel" data-v="necklace">Necklace</button>
+          <button class="obtn" data-v="ring">Ring</button>
+          <button class="obtn" data-v="earrings">Earrings</button>
+          <button class="obtn" data-v="bracelet">Bracelet</button>
+          <button class="obtn" data-v="anklet">Anklet</button>
+          <button class="obtn" data-v="brooch">Brooch</button>
+        </div>
+      </div>
+      <div>
+        <div class="stitle">Model Style</div>
+        <div class="pills" id="mstyle">
+          <button class="pill sel" data-v="editorial">Editorial</button>
+          <button class="pill" data-v="luxury">Luxury</button>
+          <button class="pill" data-v="minimalist">Minimalist</button>
+          <button class="pill" data-v="bohemian">Bohemian</button>
+          <button class="pill" data-v="studio">Studio</button>
+          <button class="pill" data-v="outdoor">Outdoor</button>
+        </div>
+      </div>
+      <div>
+        <div class="stitle">Skin Tone</div>
+        <div class="ogrid" id="skin">
+          <button class="obtn sel" data-v="">Any</button>
+          <button class="obtn" data-v="fair skin">Fair</button>
+          <button class="obtn" data-v="medium brown skin">Medium</button>
+          <button class="obtn" data-v="dark brown skin">Dark</button>
+        </div>
+      </div>
+      <div>
+        <div class="stitle">Number of Images</div>
+        <div class="crow">
+          <div class="cnum" id="cnum">2</div>
+          <input type="range" id="crange" min="1" max="4" value="2">
+          <span style="font-size:.58rem;color:var(--stone)">MAX 4</span>
+        </div>
+      </div>
+      <button class="gbtn" id="gbtn" disabled>Generate On-Model Images</button>
+    </div>
+
+    <div class="right">
+      <div class="empty" id="empty">
+        <svg class="empty-orn" viewBox="0 0 80 80" fill="none" stroke="currentColor">
+          <circle cx="40" cy="40" r="30" stroke-width=".8"/><circle cx="40" cy="40" r="20" stroke-width=".8"/>
+          <path d="M40 10L40 70M10 40L70 40" stroke-width=".5"/><circle cx="40" cy="40" r="4" fill="currentColor" opacity=".3"/>
+        </svg>
+        <div class="empty-t">Your gallery awaits</div>
+        <div class="empty-s">Upload jewellery and click generate — free, no login</div>
+      </div>
+      <div id="res" style="display:none;flex-direction:column;flex:1">
+        <div class="rhead">
+          <div class="rtitle">Generated Looks</div>
+          <div class="rsub" id="rsub"></div>
+        </div>
+        <div class="pwrap" id="pwrap">
+          <div class="ptrack"><div class="pfill" id="pfill"></div></div>
+          <div class="plabel" id="plabel">Generating…</div>
+        </div>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="lightbox" id="lb" onclick="closeLb()">
+  <button class="lbx" onclick="closeLb()">✕</button>
+  <img id="lbimg" src="" alt="" onclick="event.stopPropagation()">
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const S={imgs:[],idx:0,style:'editorial',type:'necklace',skin:'',count:2,busy:false};
+const $=id=>document.getElementById(id);
+// turbo = faster, lower quality; flux = slower, better quality
+// We use turbo for speed
+const MODEL='turbo';
+const WAIT=16;// seconds between images
+
+$('upzone').addEventListener('dragover',e=>{e.preventDefault();$('upzone').classList.add('over')});
+$('upzone').addEventListener('dragleave',()=>$('upzone').classList.remove('over'));
+$('upzone').addEventListener('drop',e=>{e.preventDefault();$('upzone').classList.remove('over');doFiles(e.dataTransfer.files)});
+$('fileIn').addEventListener('change',()=>doFiles($('fileIn').files));
+
+function doFiles(f){[...f].forEach(f=>{if(!f.type.startsWith('image/'))return;const r=new FileReader();r.onload=e=>{S.imgs.push({url:e.target.result,name:f.name});S.idx=S.imgs.length-1;drawThumbs();chkBtn()};r.readAsDataURL(f)})}
+function drawThumbs(){const a=$('thumbs');a.innerHTML='';S.imgs.forEach((img,i)=>{const d=document.createElement('div');d.className=`thumb${i===S.idx?' active':''}`;d.innerHTML=`<img src="${img.url}"><button class="rm">×</button>`;d.addEventListener('click',ev=>{if(ev.target.className!=='rm'){S.idx=i;drawThumbs()}});d.querySelector('.rm').addEventListener('click',ev=>{ev.stopPropagation();S.imgs.splice(i,1);S.idx=Math.max(0,Math.min(S.idx,S.imgs.length-1));drawThumbs();chkBtn()});a.appendChild(d)})}
+$('mstyle').addEventListener('click',e=>{if(!e.target.classList.contains('pill'))return;document.querySelectorAll('.pill').forEach(b=>b.classList.remove('sel'));e.target.classList.add('sel');S.style=e.target.dataset.v});
+$('jtype').addEventListener('click',e=>{if(!e.target.classList.contains('obtn'))return;document.querySelectorAll('#jtype .obtn').forEach(b=>b.classList.remove('sel'));e.target.classList.add('sel');S.type=e.target.dataset.v});
+$('skin').addEventListener('click',e=>{if(!e.target.classList.contains('obtn'))return;document.querySelectorAll('#skin .obtn').forEach(b=>b.classList.remove('sel'));e.target.classList.add('sel');S.skin=e.target.dataset.v});
+$('crange').addEventListener('input',()=>{S.count=parseInt($('crange').value);$('cnum').textContent=S.count});
+function chkBtn(){$('gbtn').disabled=!S.imgs.length||S.busy}
+
+$('gbtn').addEventListener('click',generate);
+async function generate(){
+  if(!S.imgs.length||S.busy)return;
+  S.busy=true;chkBtn();
+  $('empty').style.display='none';
+  $('res').style.display='flex';
+  $('grid').innerHTML='';
+  $('pwrap').classList.add('show');
+  prog(0,'Building prompts…');
+  const ps=buildPrompts();
+  $('rsub').textContent=`Generating ${S.count} image${S.count>1?'s':''}…`;
+  ps.forEach((p,i)=>makeCard(i,p.label,i===0?'loading':'queued'));
+  for(let i=0;i<ps.length;i++){
+    if(i>0){setState(i,'waiting');await countdown(i,WAIT);setState(i,'loading')}
+    prog(Math.round((i/ps.length)*88),`Generating look ${i+1} of ${ps.length}…`);
+    const seed=Math.floor(Math.random()*9999999)+100;
+    await loadImg(i,makeUrl(ps[i].prompt,seed));
+    prog(Math.round(((i+1)/ps.length)*93),i<ps.length-1?`Look ${i+1} done — ${WAIT}s until next…`:'Almost done…');
+  }
+  prog(100,'All done! ✦');
+  $('rsub').textContent=`${S.count} look${S.count>1?'s':''} generated`;
+  toast(`${S.count} image${S.count>1?'s':''} ready ✦`);
+  setTimeout(()=>$('pwrap').classList.remove('show'),1500);
+  S.busy=false;chkBtn();
+}
+
+function makeUrl(prompt,seed){
+  // turbo model is much faster (~5-10s vs 30-60s for flux)
+  return`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=680&seed=${seed}&model=${MODEL}&nologo=true`;
+}
+
+function loadImg(idx,url){
+  return new Promise(resolve=>{
+    const img=$(`img-${idx}`),loader=$(`load-${idx}`),hov=$(`hov-${idx}`),st=$(`st-${idx}`),lk=$(`lk-${idx}`);
+    if(lk){lk.href=url;lk.classList.add('show')}
+    const to=setTimeout(()=>{if(loader)loader.classList.add('gone');if(st){st.textContent='↗ Open in tab';st.style.color='var(--gold)'}resolve()},120000);
+    img.onload=()=>{clearTimeout(to);img.classList.add('show');if(loader)loader.classList.add('gone');if(hov)hov.style.display='flex';if(st){st.textContent='✦ Done';st.style.color='#3A6B3A'}resolve()};
+    img.onerror=()=>{clearTimeout(to);if(loader)loader.classList.add('gone');if(st){st.textContent='↗ Open in tab';st.style.color='var(--gold)'}resolve()};
+    img.src=url;
+  });
+}
+
+function countdown(idx,secs){
+  return new Promise(resolve=>{
+    let r=secs;
+    const fill=$(`crf-${idx}`),num=$(`crn-${idx}`),C=119.4;
+    function tick(){if(num)num.textContent=r;if(fill)fill.style.strokeDashoffset=C*(r/secs);if(r<=0){resolve();return}r--;setTimeout(tick,1000)}
+    tick();
+  });
+}
+
+function makeCard(idx,label,state){
+  const c=document.createElement('div');c.className='card';c.id=`card-${idx}`;c.style.animationDelay=`${idx*.07}s`;
+  c.innerHTML=`
+    <div class="cimg">
+      <div class="cload" id="load-${idx}">
+        ${state==='queued'?`<div class="spin" style="opacity:.22"></div><div class="ltxt" style="opacity:.45">Queued…</div>`:`<div class="spin"></div><div class="ltxt">Generating…</div><div class="lsub">Using Pollinations turbo</div>`}
+      </div>
+      <div class="cwait" id="cwait-${idx}">
+        <div class="cring">
+          <svg width="44" height="44" viewBox="0 0 44 44">
+            <circle class="crtrack" cx="22" cy="22" r="19"/>
+            <circle class="crfill" id="crf-${idx}" cx="22" cy="22" r="19"/>
+          </svg>
+          <div class="crnum" id="crn-${idx}">${WAIT}</div>
+        </div>
+        <div class="cwlabel">Next image in</div>
+      </div>
+      <img id="img-${idx}" src="" alt="${label}">
+      <div class="chov" id="hov-${idx}" style="display:none">
+        <button class="hbtn" onclick="openLb(document.getElementById('img-${idx}').src)">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1h4M1 1v4M12 12h-4M12 12v-4M8 1h4v4M1 8v4h4"/></svg>
+        </button>
+        <button class="hbtn" onclick="dlImg(document.getElementById('img-${idx}').src,'${label}')">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 1v8M3.5 6l3 3 3-3M1 12h11"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="cfooter">
+      <span class="clabel">${label}</span>
+      <span class="cstatus" id="st-${idx}" style="color:var(--dust)">⏳ ${state==='queued'?'Queued':'Generating…'}</span>
+    </div>
+    <a class="clink" id="lk-${idx}" href="#" target="_blank">↗ Open image in new tab</a>`;
+  $('grid').appendChild(c);
+}
+
+function setState(idx,state){
+  const load=$(`load-${idx}`),wait=$(`cwait-${idx}`),st=$(`st-${idx}`);
+  if(state==='waiting'){if(load)load.classList.add('gone');if(wait)wait.classList.add('show');if(st){st.textContent='⏳ Waiting…';st.style.color='var(--dust)'}}
+  else if(state==='loading'){if(wait)wait.classList.remove('show');if(load){load.classList.remove('gone');load.innerHTML=`<div class="spin"></div><div class="ltxt">Generating…</div><div class="lsub">Using Pollinations turbo</div>`};if(st){st.textContent='⚙ Generating…';st.style.color='var(--gold)'}}
+}
+
+function buildPrompts(){
+  const styles={
+    editorial:['dramatic fashion editorial, Vogue magazine, moody dark studio, luxury jewellery brand campaign','Harper Bazaar editorial, cinematic dark shadows, sophisticated background, high fashion campaign','intense editorial lighting, deep shadows, luxury jewellery campaign, fashion magazine quality','directional spotlight, strong model pose, editorial fashion shoot, luxury brand aesthetic'],
+    luxury:['luxury jewellery campaign, soft golden bokeh, warm diffused studio light, silk dress, aspirational','luxury brand ad, champagne gold tones, soft backlighting, elegant upscale atmosphere','premium jewellery, warm amber glow, blurred luxury interior, designer outfit, refined elegant','high-end jewellery ad, soft window light, warm creamy tones, sophisticated elegant'],
+    minimalist:['clean minimalist, pure white seamless background, even studio lighting, simple white outfit','minimalist jewellery, light grey background, flat soft lighting, Scandinavian clean aesthetic','ultra clean studio, white background, soft window light, minimal styling, modern contemporary','minimalist fashion, neutral tones, soft flat lighting, understated elegant, Scandinavian style'],
+    bohemian:['bohemian lifestyle, golden hour sunlight, wildflower meadow, flowing maxi dress, warm earthy','boho chic, sunset beach, warm golden light, loose waves, linen outfit, natural authentic','bohemian fashion, forest setting, dappled sunlight, floral dress, free-spirited natural mood','boho jewellery, desert sunset, amber warm light, ethnic-inspired clothing, carefree natural'],
+    studio:['clean commercial studio, pure white background, professional three-point lighting, sharp detail','professional studio, bright even lighting, commercial jewellery photography, crisp clean','studio photography, light grey background, softbox lighting, clean commercial crisp aesthetic','commercial studio, white background, professional lighting rig, jewellery showcase quality'],
+    outdoor:['outdoor lifestyle, natural park, bright daylight, casual elegant outfit, fresh authentic feel','outdoor fashion, urban city backdrop, golden hour light, candid lifestyle photography mood','nature lifestyle, coastal setting, golden hour, windswept hair, organic natural authentic beauty','botanical garden, dappled light through leaves, elegant summer dress, outdoor jewellery campaign']
+  };
+  const place={
+    necklace:'wearing a statement necklace at her décolletage and collarbone, low neckline showing necklace clearly',
+    ring:'wearing a ring on her finger, hand elegantly posed close to camera, ring visible in foreground',
+    earrings:'wearing earrings, three-quarter face angle, hair styled back to fully reveal ears and earrings',
+    bracelet:'wearing a bracelet on her wrist, arm gracefully posed in foreground, bracelet prominent',
+    anklet:'wearing an anklet on bare ankle, leg clearly visible, elegant pose showing anklet',
+    brooch:'wearing a brooch pinned on jacket lapel, upper body shot, brooch prominently displayed'
+  };
+  const sk=S.skin?`, ${S.skin}`:'';
+  const arr=styles[S.style]||styles.editorial;
+  return Array.from({length:S.count},(_,i)=>({label:`Look ${i+1}`,prompt:`beautiful professional female model${sk}, ${place[S.type]}, ${arr[i%arr.length]}, photorealistic professional photography, 8k sharp, stunning, jewellery campaign`}));
+}
+
+function prog(p,l){$('pfill').style.width=p+'%';if(l)$('plabel').textContent=l}
+function openLb(u){if(!u||u==='')return;$('lbimg').src=u;$('lb').classList.add('open');document.body.style.overflow='hidden'}
+function closeLb(){$('lb').classList.remove('open');document.body.style.overflow=''}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb()});
+async function dlImg(url,name){if(!url||url===''){toast('Image not loaded yet');return}try{const a=document.createElement('a');a.href=url;a.download=`aurum-${(name||'look').replace(/\s+/g,'-')}.jpg`;document.body.appendChild(a);a.click();document.body.removeChild(a);toast('Downloaded ✦')}catch{toast('Right-click image → Save as…')}}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+</script>
+</body>
+</html>
