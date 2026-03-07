@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurum — On-Model Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --cream: #F9F5EF; --warm-white: #FDFAF6; --gold: #B8923A;
+    --gold-light: #D4AA5A; --gold-pale: #F0E6CC; --charcoal: #1C1A18;
+    --stone: #6B6460; --dust: #C8C0B8; --border: rgba(184,146,58,0.2);
+  }
+  html, body { height: 100%; background: var(--cream); color: var(--charcoal); font-family: 'Jost', sans-serif; font-weight: 300; }
+  .app { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+
+  /* SETUP SCREEN */
+  .setup-screen { position: fixed; inset: 0; background: rgba(28,26,24,0.6); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 1.5rem; backdrop-filter: blur(4px); }
+  .setup-box { background: var(--warm-white); border: 1px solid var(--border); border-radius: 3px; padding: 2.5rem; max-width: 500px; width: 100%; box-shadow: 0 24px 64px rgba(28,26,24,0.18); }
+  .setup-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 1.5rem; color: var(--charcoal); }
+  .setup-logo span { color: var(--gold); }
+  .setup-title { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; font-weight: 300; margin-bottom: 0.5rem; }
+  .setup-sub { font-size: 0.7rem; color: var(--stone); line-height: 1.7; margin-bottom: 1.4rem; letter-spacing: 0.03em; }
+  .setup-steps { background: rgba(184,146,58,0.06); border: 1px solid var(--border); border-radius: 1px; padding: 1rem 1.2rem; margin-bottom: 1.4rem; }
+  .setup-step { font-size: 0.68rem; color: var(--stone); line-height: 1.8; letter-spacing: 0.03em; }
+  .setup-step a { color: var(--gold); text-decoration: none; font-weight: 400; }
+  .setup-step a:hover { text-decoration: underline; }
+  .inp-wrap { position: relative; margin-bottom: 0.8rem; }
+  .hf-input { width: 100%; padding: 0.8rem 2.8rem 0.8rem 1rem; border: 1px solid var(--border); background: var(--cream); font-family: 'Jost', sans-serif; font-size: 0.76rem; letter-spacing: 0.04em; color: var(--charcoal); outline: none; border-radius: 1px; transition: border-color 0.2s; }
+  .hf-input:focus { border-color: var(--gold); }
+  .hf-input::placeholder { color: var(--dust); }
+  .tog { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 0.62rem; color: var(--dust); letter-spacing: 0.08em; text-transform: uppercase; }
+  .setup-err { font-size: 0.68rem; color: #8B3A3A; margin-bottom: 0.7rem; display: none; }
+  .setup-err.show { display: block; }
+  .go-btn { width: 100%; padding: 0.85rem; background: var(--charcoal); color: var(--gold-pale); border: none; font-family: 'Cormorant Garamond', serif; font-size: 0.9rem; letter-spacing: 0.3em; text-transform: uppercase; cursor: pointer; transition: all 0.3s; border-radius: 1px; }
+  .go-btn:hover { background: #2a2724; letter-spacing: 0.4em; }
+  .setup-note { font-size: 0.6rem; color: var(--dust); margin-top: 0.8rem; line-height: 1.6; text-align: center; }
+
+  header { padding: 1.2rem 2.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--warm-white); }
+  .logo { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; }
+  .logo span { color: var(--gold); }
+  .tagline { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--stone); }
+  .key-pill { display: flex; align-items: center; gap: 0.5rem; background: rgba(46,107,46,0.08); border: 1px solid rgba(46,107,46,0.2); border-radius: 50px; padding: 0.3rem 0.8rem; font-size: 0.6rem; color: #3A6B3A; letter-spacing: 0.1em; cursor: pointer; }
+  .key-dot { width: 6px; height: 6px; border-radius: 50%; background: #3A6B3A; }
+
+  main { display: grid; grid-template-columns: 370px 1fr; min-height: 0; }
+  .panel-left { background: var(--warm-white); border-right: 1px solid var(--border); padding: 1.8rem; display: flex; flex-direction: column; gap: 1.4rem; overflow-y: auto; }
+  .section-title { font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; font-weight: 400; letter-spacing: 0.1em; color: var(--charcoal); margin-bottom: 0.55rem; display: flex; align-items: center; gap: 0.5rem; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .upload-zone { border: 1.5px dashed var(--dust); border-radius: 2px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--gold); background: rgba(184,146,58,0.03); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { width: 34px; height: 34px; margin: 0 auto 0.6rem; opacity: 0.28; }
+  .upload-text { font-size: 0.73rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); }
+  .upload-sub { font-size: 0.63rem; color: var(--dust); margin-top: 0.25rem; }
+  .preview-area { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.7rem; }
+  .preview-thumb { width: 58px; height: 58px; border-radius: 2px; overflow: hidden; position: relative; border: 1px solid var(--border); cursor: pointer; transition: transform 0.2s; flex-shrink: 0; }
+  .preview-thumb:hover { transform: scale(1.06); }
+  .preview-thumb.active { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-pale); }
+  .preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .preview-thumb .rm { position: absolute; top: 2px; right: 2px; width: 15px; height: 15px; background: rgba(28,26,24,0.75); color: white; border: none; border-radius: 50%; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+  .preview-thumb:hover .rm { opacity: 1; }
+
+  .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+  .option-btn { padding: 0.5rem; border: 1px solid var(--border); background: transparent; cursor: pointer; font-family: 'Jost', sans-serif; font-size: 0.66rem; font-weight: 300; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); transition: all 0.2s; border-radius: 1px; }
+  .option-btn:hover { border-color: var(--gold-light); color: var(--charcoal); }
+  .option-btn.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--gold-pale); }
+  .style-pills { display: flex; flex-wrap: wrap; gap: 0.38rem; }
+  .style-pill { padding: 0.35rem 0.8rem; border: 1px solid var(--border); background: transparent; cursor: pointer; font-family: 'Jost', sans-serif; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); border-radius: 50px; transition: all 0.2s; }
+  .style-pill:hover { border-color: var(--gold); color: var(--gold); }
+  .style-pill.selected { background: var(--gold); border-color: var(--gold); color: white; }
+  .count-row { display: flex; align-items: center; gap: 1rem; }
+  .count-num { font-family: 'Cormorant Garamond', serif; font-size: 1.9rem; font-weight: 300; color: var(--gold); min-width: 2rem; text-align: center; }
+  input[type="range"] { flex: 1; -webkit-appearance: none; height: 2px; background: var(--border); border-radius: 1px; outline: none; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--gold); cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px var(--gold); }
+
+  .generate-btn { width: 100%; padding: 0.95rem; background: var(--charcoal); color: var(--gold-pale); border: none; font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; font-weight: 400; letter-spacing: 0.3em; text-transform: uppercase; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; margin-top: auto; }
+  .generate-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(212,170,90,0.15), transparent); transition: left 0.5s; }
+  .generate-btn:hover::before { left: 100%; }
+  .generate-btn:hover:not(:disabled) { background: #2a2724; letter-spacing: 0.4em; }
+  .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .panel-right { padding: 2.2rem; overflow-y: auto; display: flex; flex-direction: column; }
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.1rem; }
+  .empty-ornament { width: 65px; height: 65px; opacity: 0.11; }
+  .empty-title { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 300; letter-spacing: 0.05em; }
+  .empty-sub { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); max-width: 240px; line-height: 1.8; }
+
+  .results-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
+  .results-title { font-family: 'Cormorant Garamond', serif; font-size: 1.25rem; font-weight: 300; letter-spacing: 0.08em; }
+  .results-sub { font-size: 0.63rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); }
+
+  .progress-row { margin-bottom: 1.2rem; display: none; }
+  .progress-row.show { display: block; }
+  .progress-track { height: 2px; background: var(--gold-pale); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); border-radius: 2px; transition: width 0.4s ease; width: 0%; }
+  .progress-txt { font-size: 0.63rem; color: var(--stone); margin-top: 0.4rem; letter-spacing: 0.06em; }
+
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.3rem; }
+  .result-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: 2px; overflow: hidden; transition: transform 0.3s, box-shadow 0.3s; animation: fadeUp 0.4s ease both; }
+  .result-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(28,26,24,0.09); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card-img { aspect-ratio: 3/4; position: relative; background: var(--gold-pale); overflow: hidden; }
+  .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 0.6s; }
+  .card-img img.loaded { opacity: 1; }
+
+  .card-loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8rem; transition: opacity 0.4s; }
+  .card-loader.gone { opacity: 0; pointer-events: none; }
+  .spin { width: 28px; height: 28px; border: 2px solid rgba(184,146,58,0.15); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.85s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .load-txt { font-family: 'Cormorant Garamond', serif; font-size: 0.78rem; font-style: italic; color: var(--stone); text-align: center; padding: 0 1rem; line-height: 1.5; }
+  .load-sub { font-size: 0.6rem; color: var(--dust); letter-spacing: 0.08em; text-align: center; }
+
+  .card-hover { position: absolute; inset: 0; background: rgba(28,26,24,0); display: flex; align-items: center; justify-content: center; gap: 0.6rem; transition: background 0.3s; }
+  .result-card:hover .card-hover { background: rgba(28,26,24,0.42); }
+  .hbtn { width: 38px; height: 38px; background: rgba(249,245,239,0.93); border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--charcoal); opacity: 0; transform: scale(0.8); transition: all 0.2s; }
+  .result-card:hover .hbtn { opacity: 1; transform: scale(1); }
+  .hbtn:hover { background: white; transform: scale(1.1) !important; }
+
+  .card-meta { padding: 0.7rem 1rem; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
+  .card-label { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--stone); }
+  .card-status { font-size: 0.58rem; letter-spacing: 0.07em; }
+
+  .lightbox { position: fixed; inset: 0; background: rgba(28,26,24,0.93); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 2rem; cursor: zoom-out; }
+  .lightbox.open { display: flex; animation: lbIn 0.18s ease; }
+  @keyframes lbIn { from { opacity: 0; } to { opacity: 1; } }
+  .lightbox img { max-height: 90vh; max-width: 90vw; object-fit: contain; cursor: default; }
+  .lbx { position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(249,245,239,0.14); border: none; color: var(--cream); width: 34px; height: 34px; border-radius: 50%; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .lbx:hover { background: rgba(249,245,239,0.25); }
+
+  .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--charcoal); color: var(--gold-pale); padding: 0.7rem 1.3rem; font-size: 0.7rem; letter-spacing: 0.1em; border-radius: 1px; transform: translateY(70px); opacity: 0; transition: all 0.38s cubic-bezier(0.175,0.885,0.32,1.275); z-index: 1000; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--dust); border-radius: 2px; }
+
+  /* DEBUG CONSOLE */
+  .debug-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 900; }
+  .debug-toggle { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 1rem; background: #1a1a1a; border-top: 1px solid #333; cursor: pointer; user-select: none; }
+  .debug-toggle-label { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: #888; font-family: monospace; }
+  .debug-count { background: #c0392b; color: white; border-radius: 50px; padding: 0.1rem 0.45rem; font-size: 0.55rem; font-family: monospace; display: none; }
+  .debug-count.show { display: inline; }
+  .debug-panel { background: #111; border-top: 1px solid #333; max-height: 280px; overflow-y: auto; display: none; }
+  .debug-panel.open { display: block; }
+  .debug-toolbar { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1rem; border-bottom: 1px solid #222; background: #161616; }
+  .debug-btn { background: #2a2a2a; border: 1px solid #333; color: #aaa; padding: 0.2rem 0.6rem; font-size: 0.58rem; font-family: monospace; cursor: pointer; border-radius: 2px; letter-spacing: 0.06em; }
+  .debug-btn:hover { background: #333; color: #eee; }
+  .debug-btn.red { border-color: #7a2a2a; color: #e88; }
+  .debug-entries { padding: 0.3rem 0; }
+  .debug-entry { padding: 0.35rem 1rem; border-bottom: 1px solid #1a1a1a; display: flex; gap: 0.8rem; align-items: flex-start; }
+  .debug-entry:last-child { border-bottom: none; }
+  .debug-time { font-size: 0.55rem; color: #555; font-family: monospace; white-space: nowrap; padding-top: 0.05rem; flex-shrink: 0; }
+  .debug-icon { font-size: 0.65rem; flex-shrink: 0; padding-top: 0.05rem; }
+  .debug-msg { font-size: 0.62rem; font-family: monospace; line-height: 1.5; word-break: break-all; }
+  .debug-entry.error .debug-msg { color: #ff6b6b; }
+  .debug-entry.warn  .debug-msg { color: #ffd93d; }
+  .debug-entry.info  .debug-msg { color: #74b9ff; }
+  .debug-entry.ok    .debug-msg { color: #55efc4; }
+  .debug-entry.plain .debug-msg { color: #ccc; }
+  .debug-detail { margin-top: 0.3rem; padding: 0.4rem 0.6rem; background: #1a1a1a; border-radius: 2px; font-size: 0.58rem; font-family: monospace; color: #999; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+  .debug-fix { margin-top: 0.4rem; padding: 0.4rem 0.7rem; background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2); border-radius: 2px; font-size: 0.6rem; color: #ffaaaa; line-height: 1.6; }
+  .debug-fix strong { color: #ff8c8c; }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div class="setup-screen" id="setupScreen">
+  <div class="setup-box">
+    <div class="setup-logo">A<span>u</span>rum</div>
+    <div class="setup-title">Enter your free HuggingFace token</div>
+    <div class="setup-sub">A HuggingFace token gives you fast, reliable AI image generation — completely free. Takes 30 seconds to get.</div>
+    <div class="setup-steps">
+      <div class="setup-step">1. Go to <a href="https://huggingface.co/join" target="_blank">huggingface.co/join</a> and create a free account</div>
+      <div class="setup-step">2. Visit <a href="https://huggingface.co/settings/tokens/new?tokenType=fineGrained" target="_blank">huggingface.co/settings/tokens</a></div>
+      <div class="setup-step">3. Click <strong>New Token</strong> → choose <strong>Read</strong> access → copy it</div>
+      <div class="setup-step">4. Paste it below and click Continue</div>
+    </div>
+    <div class="setup-err" id="setupErr">Please enter a valid HuggingFace token (starts with hf_)</div>
+    <div class="inp-wrap">
+      <input class="hf-input" type="password" id="hfInput" placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+      <button class="tog" onclick="toggleVis()">show</button>
+    </div>
+    <button class="go-btn" onclick="saveToken()">Continue →</button>
+    <div class="setup-note">Your token is stored only in this browser tab's memory and sent only to HuggingFace's official API. It is never stored or shared.</div>
+  </div>
+</div>
+
+<div class="app">
+  <header>
+    <div class="logo">A<span>u</span>rum</div>
+    <div class="tagline">On-Model Image Generator</div>
+    <div class="key-pill" id="keyPill" onclick="changeToken()" title="Click to change token">
+      <div class="key-dot"></div>
+      <span id="keyPillTxt">HF Token active</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="panel-left">
+      <div>
+        <div class="section-title">Jewellery Upload</div>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept="image/*" multiple>
+          <svg class="upload-icon" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.2">
+            <rect x="4" y="4" width="36" height="36" rx="2"/>
+            <circle cx="16" cy="16" r="4"/>
+            <path d="M4 30l10-10 6 6 8-8 12 12"/>
+          </svg>
+          <div class="upload-text">Drop jewellery image here</div>
+          <div class="upload-sub">PNG / JPG — transparent background works best</div>
+        </div>
+        <div class="preview-area" id="previewArea"></div>
+      </div>
+
+      <div>
+        <div class="section-title">Jewellery Type</div>
+        <div class="option-grid" id="jewelleryType">
+          <button class="option-btn selected" data-val="necklace">Necklace</button>
+          <button class="option-btn" data-val="ring">Ring</button>
+          <button class="option-btn" data-val="earrings">Earrings</button>
+          <button class="option-btn" data-val="bracelet">Bracelet</button>
+          <button class="option-btn" data-val="anklet">Anklet</button>
+          <button class="option-btn" data-val="brooch">Brooch</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Model Style</div>
+        <div class="style-pills" id="modelStyles">
+          <button class="style-pill selected" data-val="editorial">Editorial</button>
+          <button class="style-pill" data-val="luxury">Luxury</button>
+          <button class="style-pill" data-val="minimalist">Minimalist</button>
+          <button class="style-pill" data-val="bohemian">Bohemian</button>
+          <button class="style-pill" data-val="studio">Studio</button>
+          <button class="style-pill" data-val="outdoor">Outdoor</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Skin Tone</div>
+        <div class="option-grid" id="skinTone">
+          <button class="option-btn selected" data-val="">Any</button>
+          <button class="option-btn" data-val="fair skin">Fair</button>
+          <button class="option-btn" data-val="medium brown skin">Medium</button>
+          <button class="option-btn" data-val="dark brown skin">Dark</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Images to Generate</div>
+        <div class="count-row">
+          <div class="count-num" id="countNum">2</div>
+          <input type="range" id="countRange" min="1" max="4" value="2" step="1">
+          <span style="font-size:0.6rem;color:var(--stone);">MAX 4</span>
+        </div>
+      </div>
+
+      <button class="generate-btn" id="generateBtn" disabled>Generate On-Model Images</button>
+    </div>
+
+    <div class="panel-right">
+      <div class="empty-state" id="emptyState">
+        <svg class="empty-ornament" viewBox="0 0 80 80" fill="none" stroke="currentColor">
+          <circle cx="40" cy="40" r="30" stroke-width="0.8"/>
+          <circle cx="40" cy="40" r="20" stroke-width="0.8"/>
+          <path d="M40 10 L40 70 M10 40 L70 40" stroke-width="0.5"/>
+          <circle cx="40" cy="40" r="4" fill="currentColor" opacity="0.3"/>
+        </svg>
+        <div class="empty-title">Your gallery awaits</div>
+        <div class="empty-sub">Upload jewellery and click generate</div>
+      </div>
+
+      <div id="resultsArea" style="display:none; flex-direction:column; flex:1;">
+        <div class="results-header">
+          <div class="results-title">Generated Looks</div>
+          <div class="results-sub" id="resCount"></div>
+        </div>
+        <div class="progress-row" id="progressRow">
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-txt" id="progressTxt">Generating…</div>
+        </div>
+        <div class="results-grid" id="resultsGrid"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- DEBUG CONSOLE -->
+<div class="debug-bar" id="debugBar">
+  <div class="debug-toggle" onclick="toggleDebug()">
+    <span style="color:#555;font-size:0.7rem;">▶</span>
+    <span class="debug-toggle-label" id="debugToggleLabel">🔍 Debug Console</span>
+    <span class="debug-count" id="debugErrCount">0 errors</span>
+    <span style="margin-left:auto;font-size:0.55rem;color:#444;font-family:monospace;">click to expand</span>
+  </div>
+  <div class="debug-panel" id="debugPanel">
+    <div class="debug-toolbar">
+      <span style="font-size:0.6rem;color:#666;font-family:monospace;flex:1;">Console output — shows all API calls and errors</span>
+      <button class="debug-btn" onclick="testConnection()">▶ Test Connection</button>
+      <button class="debug-btn red" onclick="clearDebug()">✕ Clear</button>
+    </div>
+    <div class="debug-entries" id="debugEntries">
+      <div class="debug-entry plain">
+        <span class="debug-time">--:--:--</span>
+        <span class="debug-icon">📋</span>
+        <span class="debug-msg">Debug console ready. Click "Generate" to see output, or "Test Connection" to check your token and API.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLb()">
+  <button class="lbx" onclick="closeLb()">✕</button>
+  <img id="lbImg" src="" alt="" onclick="event.stopPropagation()">
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const S = { hf:'', images:[], idx:0, style:'editorial', type:'necklace', skin:'', count:2, busy:false };
+const $ = id => document.getElementById(id);
+const HF_MODEL = 'stabilityai/stable-diffusion-xl-base-1.0'; // open access, no licence needed
+
+// ── Token setup ─────────────────────────────────────────
+function toggleVis(){ const i=$('hfInput'); const isP=i.type==='password'; i.type=isP?'text':'password'; document.querySelector('.tog').textContent=isP?'hide':'show'; }
+function saveToken(){
+  const v=$('hfInput').value.trim();
+  if(!v.startsWith('hf_')&&v.length<10){ $('setupErr').classList.add('show'); return; }
+  S.hf=v;
+  $('setupScreen').style.display='none';
+  $('keyPillTxt').textContent='HF: '+v.slice(0,10)+'…';
+}
+$('hfInput').addEventListener('keydown',e=>{ if(e.key==='Enter') saveToken(); });
+function changeToken(){ $('hfInput').value=''; $('setupErr').classList.remove('show'); $('setupScreen').style.display='flex'; }
+
+// ── Upload ───────────────────────────────────────────────
+$('uploadZone').addEventListener('dragover',e=>{e.preventDefault();$('uploadZone').classList.add('drag-over');});
+$('uploadZone').addEventListener('dragleave',()=>$('uploadZone').classList.remove('drag-over'));
+$('uploadZone').addEventListener('drop',e=>{e.preventDefault();$('uploadZone').classList.remove('drag-over');doFiles(e.dataTransfer.files);});
+$('fileInput').addEventListener('change',()=>doFiles($('fileInput').files));
+
+function doFiles(files){
+  [...files].forEach(f=>{
+    if(!f.type.startsWith('image/'))return;
+    const r=new FileReader();
+    r.onload=e=>{S.images.push({url:e.target.result,name:f.name});S.idx=S.images.length-1;drawThumbs();chk();};
+    r.readAsDataURL(f);
+  });
+}
+function drawThumbs(){
+  const a=$('previewArea');a.innerHTML='';
+  S.images.forEach((img,i)=>{
+    const d=document.createElement('div');
+    d.className=`preview-thumb${i===S.idx?' active':''}`;
+    d.innerHTML=`<img src="${img.url}"><button class="rm">×</button>`;
+    d.addEventListener('click',ev=>{if(ev.target.className!=='rm'){S.idx=i;drawThumbs();}});
+    d.querySelector('.rm').addEventListener('click',ev=>{ev.stopPropagation();S.images.splice(i,1);S.idx=Math.max(0,Math.min(S.idx,S.images.length-1));drawThumbs();chk();});
+    a.appendChild(d);
+  });
+}
+$('modelStyles').addEventListener('click',e=>{if(!e.target.classList.contains('style-pill'))return;document.querySelectorAll('.style-pill').forEach(b=>b.classList.remove('selected'));e.target.classList.add('selected');S.style=e.target.dataset.val;});
+$('jewelleryType').addEventListener('click',e=>{if(!e.target.classList.contains('option-btn'))return;document.querySelectorAll('#jewelleryType .option-btn').forEach(b=>b.classList.remove('selected'));e.target.classList.add('selected');S.type=e.target.dataset.val;});
+$('skinTone').addEventListener('click',e=>{if(!e.target.classList.contains('option-btn'))return;document.querySelectorAll('#skinTone .option-btn').forEach(b=>b.classList.remove('selected'));e.target.classList.add('selected');S.skin=e.target.dataset.val;});
+$('countRange').addEventListener('input',()=>{S.count=parseInt($('countRange').value);$('countNum').textContent=S.count;});
+function chk(){$('generateBtn').disabled=!S.images.length||S.busy;}
+
+// ── Generate ─────────────────────────────────────────────
+$('generateBtn').addEventListener('click',generate);
+
+async function generate(){
+  if(!S.images.length||S.busy)return;
+  S.busy=true;chk();
+  dbLog('info',`Generate started — ${S.count} image${S.count>1?'s':''}, style: ${S.style}, type: ${S.type}`);
+  dbLog('plain',`Protocol: ${location.protocol} | Running from: ${location.host||'(local file)'}`);
+  if(location.protocol==='file:'){
+    dbLog('error','⛔ File:// detected — API calls WILL fail','All fetch() calls are blocked by the browser from local files.',
+      'Host this file at <a href="https://netlify.com/drop" target="_blank" style="color:#ffaaaa">netlify.com/drop</a> (free, 30 sec) to fix this permanently.');
+  }
+  $('emptyState').style.display='none';
+  $('resultsArea').style.display='flex';
+  $('resultsGrid').innerHTML='';
+  $('progressRow').classList.add('show');
+  setProg(0,'Building prompts…');
+
+  const prompts=buildPrompts();
+  $('resCount').textContent=`Generating ${S.count} image${S.count>1?'s':''}…`;
+
+  // Create placeholder cards
+  prompts.forEach((p,i)=>makeCard(i,p.label));
+  
+  // Generate all in parallel (HF handles rate limiting)
+  let done=0;
+  await Promise.all(prompts.map(async(p,i)=>{
+    try{
+      setProg(10+Math.round((done/prompts.length)*80),`Generating look ${i+1}…`);
+      const blob=await callHF(p.prompt,i);
+      const url=URL.createObjectURL(blob);
+      showCardImg(i,url,p.label,p.prompt);
+    }catch(err){
+      showCardErr(i,err.message||'Generation failed');
+    }finally{
+      done++;
+      setProg(10+Math.round((done/prompts.length)*85),done===prompts.length?'All done!':
+        `${done} of ${prompts.length} complete…`);
+    }
+  }));
+
+  $('resCount').textContent=`${S.count} look${S.count>1?'s':''} generated`;
+  showToast(`${S.count} image${S.count>1?'s':''} ready ✦`);
+  setTimeout(()=>{$('progressRow').classList.remove('show');setProg(0,'');},1200);
+  S.busy=false;chk();
+}
+
+// ── HuggingFace API call ──────────────────────────────────
+async function callHF(prompt, lookIdx){
+  const label = lookIdx!=null ? `Look ${lookIdx+1}` : 'Request';
+  dbLog('info', `${label}: Calling HuggingFace API…`);
+  dbLog('plain', `${label} prompt: ${prompt.slice(0,100)}…`);
+
+  let res;
+  try {
+    res = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`,{
+      method:'POST',
+      headers:{
+        'Authorization':`Bearer ${S.hf}`,
+        'Content-Type':'application/json',
+        'x-use-cache':'0'
+      },
+      body:JSON.stringify({
+        inputs:prompt,
+        parameters:{width:512,height:768,num_inference_steps:25,guidance_scale:7.5,negative_prompt:"blurry, low quality, deformed, ugly, bad anatomy, watermark, text"}
+      })
+    });
+  } catch(fetchErr) {
+    const isCors = fetchErr.message==='Failed to fetch';
+    dbLog('error',
+      `${label}: ${fetchErr.message}`,
+      `Protocol: ${location.protocol}\nURL: ${location.href.slice(0,80)}`,
+      isCors
+        ? `You are opening the file directly (file://). Browsers BLOCK all fetch() calls from local files to external APIs — this is called CORS.<br><br>→ <strong>The fix:</strong> Go to <a href="https://netlify.com/drop" target="_blank" style="color:#ffaaaa">netlify.com/drop</a>, drag this HTML file there, get a free https:// URL. Images will work instantly.`
+        : `Check your internet connection. Error: ${fetchErr.message}`
+    );
+    throw fetchErr;
+  }
+
+  dbLog('plain', `${label}: HTTP ${res.status} ${res.statusText} | content-type: ${res.headers.get('content-type')||'?'}`);
+
+  if(!res.ok){
+    const txt=await res.text().catch(()=>'');
+    dbLog('error', `${label}: API returned error ${res.status}`, txt.slice(0,300),
+      res.status===401 ? 'Token rejected. Get a new Read token at huggingface.co/settings/tokens and re-enter it.' :
+      res.status===503 ? 'Model is cold-starting (normal). Wait 20 seconds and click Generate again.' :
+      res.status===429 ? 'Rate limit hit. Wait a minute and try again.' : ''
+    );
+    if(res.status===401)throw new Error('Invalid token. Click the green pill to update it.');
+    if(res.status===503)throw new Error('Model loading — please try again in 20s.');
+    throw new Error(`API error ${res.status}: ${txt.slice(0,100)}`);
+  }
+  const blob=await res.blob();
+  if(!blob.type.startsWith('image/')){
+    dbLog('error',`${label}: Got non-image response`,`type: ${blob.type}, size: ${blob.size}`,'The model may have returned an error as JSON. Try again.');
+    throw new Error('Invalid response from HuggingFace.');
+  }
+  dbLog('ok',`${label}: ✅ Image received — ${(blob.size/1024).toFixed(0)} KB (${blob.type})`);
+  return blob;
+}
+
+// ── Prompt builder ────────────────────────────────────────
+function buildPrompts(){
+  const styles={
+    editorial:['dramatic fashion editorial, Vogue magazine, moody dark studio lighting, luxury brand',
+               'fashion editorial, Harper Bazaar aesthetic, cinematic shadows, sophisticated dark background',
+               'high fashion editorial, intense dramatic lighting, deep shadows, luxury jewellery campaign',
+               'editorial jewellery shoot, directional spotlight, strong pose, fashion magazine quality'],
+    luxury:   ['luxury jewellery campaign, soft golden bokeh, warm diffused light, silk dress, aspirational',
+               'luxury brand ad, champagne and gold tones, soft backlighting, elegant model, upscale mood',
+               'premium jewellery campaign, warm amber glow, blurred luxury interior, designer clothing',
+               'high-end jewellery advertisement, soft window light, warm creamy tones, elegant sophisticated'],
+    minimalist:['clean minimalist, pure white seamless background, even studio lighting, simple white outfit',
+                'minimalist jewellery photo, light grey background, flat soft lighting, Scandinavian style',
+                'ultra clean studio, white background, soft natural light, minimal styling, modern brand',
+                'minimalist fashion, neutral tones, flat lighting, understated elegant styling, contemporary'],
+    bohemian: ['bohemian lifestyle, golden hour, wildflower meadow, flowing maxi dress, warm earthy tones',
+               'boho chic, sunset beach, warm golden light, loose wavy hair, linen outfit, natural beauty',
+               'bohemian fashion, forest setting, dappled sunlight, floral dress, free-spirited natural',
+               'boho jewellery, desert sunset, amber light, ethnic-inspired clothing, carefree mood'],
+    studio:   ['clean commercial studio, white seamless background, professional three-point lighting',
+               'professional product studio, bright white background, even lighting, commercial jewellery',
+               'studio photography, light grey background, softbox lighting, clean commercial aesthetic',
+               'commercial studio, white background, professional lighting, jewellery showcase, sharp detail'],
+    outdoor:  ['outdoor lifestyle, natural park, bright daylight, casual elegant outfit, fresh authentic feel',
+               'outdoor fashion, urban city backdrop, golden hour light, candid lifestyle photography',
+               'nature lifestyle, coastal setting, golden hour, windswept hair, organic natural beauty',
+               'outdoor jewellery, botanical garden, dappled light, elegant summer dress, natural mood']
+  };
+  const placement={
+    necklace:'wearing a statement necklace at her décolletage and collarbone, low elegant neckline',
+    ring:'wearing a ring on her finger, hand gracefully posed close to camera, ring clearly visible',
+    earrings:'wearing earrings, three-quarter face angle, hair styled back to show ears clearly',
+    bracelet:'wearing a bracelet on her wrist, arm elegantly posed in foreground of shot',
+    anklet:'wearing an anklet, bare ankle and leg visible, elegant seated or standing pose',
+    brooch:'wearing a brooch pinned on jacket lapel at chest, upper body shot, brooch prominent'
+  };
+  const skin=S.skin?`, ${S.skin}`:'';
+  const arr=styles[S.style]||styles.editorial;
+  return Array.from({length:S.count},(_,i)=>({
+    label:`Look ${i+1}`,
+    prompt:`beautiful professional female model${skin}, ${placement[S.type]}, ${arr[i%arr.length]}, photorealistic professional photography, 8k, sharp focus, jewellery campaign, stunning`
+  }));
+}
+
+// ── Cards ─────────────────────────────────────────────────
+function makeCard(i,label){
+  const c=document.createElement('div');
+  c.className='result-card';c.id=`card-${i}`;c.style.animationDelay=`${i*0.07}s`;
+  c.innerHTML=`
+    <div class="card-img" id="ci-${i}">
+      <div class="card-loader" id="cl-${i}">
+        <div class="spin"></div>
+        <div class="load-txt">Generating with<br>FLUX AI…</div>
+        <div class="load-sub">~20–40 seconds</div>
+      </div>
+      <img id="img-${i}" src="" alt="${label}">
+      <div class="card-hover" id="ch-${i}" style="display:none;">
+        <button class="hbtn" onclick="openLb(document.getElementById('img-${i}').src)">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1h4M1 1v4M12 12h-4M12 12v-4M8 1h4v4M1 8v4h4"/></svg>
+        </button>
+        <button class="hbtn" onclick="dlImg(document.getElementById('img-${i}').src,'look-${i+1}')">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 1v8M3.5 6l3 3 3-3M1 12h11"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span class="card-label">${label}</span>
+      <span class="card-status" id="cs-${i}" style="color:var(--dust);">⚙ Generating…</span>
+    </div>`;
+  $('resultsGrid').appendChild(c);
+}
+
+function showCardImg(i,url,label){
+  const img=$(`img-${i}`);
+  const loader=$(`cl-${i}`);
+  const hover=$(`ch-${i}`);
+  const status=$(`cs-${i}`);
+  img.onload=()=>{
+    img.classList.add('loaded');
+    loader.classList.add('gone');
+    hover.style.display='flex';
+    status.textContent='✦ Generated';
+    status.style.color='#3A6B3A';
+  };
+  img.src=url;
+}
+
+function showCardErr(i,msg){
+  const loader=$(`cl-${i}`);
+  const status=$(`cs-${i}`);
+  if(loader) loader.innerHTML=`<div style="font-size:0.68rem;color:#8B3A3A;text-align:center;padding:1rem;line-height:1.5;">${msg}</div>`;
+  if(status){status.textContent='⚠ Error';status.style.color='#8B3A3A';}
+}
+
+function setProg(p,t){$('progressFill').style.width=p+'%';if(t)$('progressTxt').textContent=t;}
+
+function openLb(u){if(!u)return;$('lbImg').src=u;$('lightbox').classList.add('open');document.body.style.overflow='hidden';}
+function closeLb(){$('lightbox').classList.remove('open');document.body.style.overflow='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
+
+async function dlImg(url,name){
+  try{
+    const a=document.createElement('a');a.href=url;
+    a.download=`aurum-${name}.jpg`;document.body.appendChild(a);a.click();document.body.removeChild(a);
+    showToast('Image downloaded');
+  }catch{showToast('Right-click image to save');}
+}
+function showToast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ── DEBUG CONSOLE ──────────────────────────────────────────
+let debugOpen=false, errCount=0;
+function toggleDebug(){
+  debugOpen=!debugOpen;
+  $('debugPanel').classList.toggle('open',debugOpen);
+  $('debugToggleLabel').textContent=debugOpen?'🔍 Debug Console':'🔍 Debug Console';
+  document.querySelector('.debug-bar .debug-toggle span:last-of-type').textContent=debugOpen?'click to hide':'click to expand';
+}
+function dbLog(type,msg,detail,fix){
+  const now=new Date();
+  const t=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  const icons={error:'❌',warn:'⚠️',info:'ℹ️',ok:'✅',plain:'📋'};
+  if(type==='error'){errCount++;const c=$('debugErrCount');c.textContent=`${errCount} error${errCount>1?'s':''}`;c.classList.add('show');}
+  const e=document.createElement('div');e.className=`debug-entry ${type}`;
+  e.innerHTML=`<span class="debug-time">${t}</span><span class="debug-icon">${icons[type]||'•'}</span><div class="debug-msg">${msg}${detail?`<div class="debug-detail">${detail}</div>`:''}${fix?`<div class="debug-fix"><strong>💡 Fix:</strong> ${fix}</div>`:''}</div>`;
+  $('debugEntries').appendChild(e);
+  $('debugEntries').scrollTop=$('debugEntries').scrollHeight;
+  if(!debugOpen&&type==='error')toggleDebug();
+}
+function clearDebug(){$('debugEntries').innerHTML='';errCount=0;$('debugErrCount').classList.remove('show');}
+
+async function testConnection(){
+  if(!debugOpen)toggleDebug();
+  clearDebug();
+  dbLog('info','Running connection test…');
+  dbLog('plain',`Page URL: ${location.href}`);
+  dbLog('plain',`Protocol: ${location.protocol}`);
+  if(location.protocol==='file:'){
+    dbLog('error','⛔ Running from file:// — this BLOCKS all external API calls','Browsers enforce strict CORS rules that prevent any fetch() calls from file:// pages to external servers like HuggingFace or Pollinations.',
+      'Host this file online. Quickest way: go to <a href="https://netlify.com/drop" target="_blank" style="color:#ff9999">netlify.com/drop</a>, drag the HTML file there, and use the resulting https:// URL. Takes 30 seconds, free forever.');
+    return;
+  }
+  if(!S.hf){dbLog('error','No token set','S.hf is empty — no HuggingFace token has been entered.','Click the green token pill in the header to open the setup screen and enter your token.');return;}
+  dbLog('plain',`Token: ${S.hf.slice(0,10)}… (length: ${S.hf.length})`);
+  dbLog('info',`Pinging model: ${HF_MODEL}…`);
+  try{
+    const r=await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`,{
+      method:'POST',headers:{'Authorization':`Bearer ${S.hf}`,'Content-Type':'application/json'},
+      body:JSON.stringify({inputs:'test',parameters:{width:64,height:64,num_inference_steps:1}})
+    });
+    dbLog('plain',`Response status: ${r.status} ${r.statusText}`);
+    dbLog('plain',`Content-Type: ${r.headers.get('content-type')||'none'}`);
+    if(r.status===200){dbLog('ok','✅ Token valid and API reachable. Ready to generate!');}
+    else if(r.status===401){dbLog('error','Token invalid (401)','The token was rejected by HuggingFace.','Go to huggingface.co/settings/tokens → create a new Read token → paste it in the setup screen.');}
+    else if(r.status===503){dbLog('warn','Model loading (503)','The model is cold-starting — this is normal on first use.','Wait ~20 seconds and click Generate. The model will be warm after the first call.');}
+    else{const txt=await r.text().catch(()=>'(unreadable)');dbLog('error',`Unexpected status ${r.status}`,txt.slice(0,500));}
+  }catch(err){
+    dbLog('error',`Fetch threw: ${err.name}: ${err.message}`,`Stack: ${err.stack?.slice(0,400)||'n/a'}`,
+      err.message==='Failed to fetch'?'This is almost certainly a CORS block. Make sure you\'re running from https:// not file://':
+      'Check your internet connection.');
+  }
+}
+</script>
+</body>
+</html>
